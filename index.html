@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Camp Half-Blood</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+    touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  #hc-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  /* Black overlay used for the opening fade-in */
+  #hc-fade { position: fixed; inset: 0; background: #000; pointer-events: none; opacity: 1; }
+
+  /* Loading screen: the old map of Camp Half-Blood (built by src/loader.js; classes prefixed hcl-) */
+  /* FONTS, all SIL Open Font License 1.1 (licence texts: public/assets/fonts/*-OFL.txt), bundled from the npm packages
+     @fontsource/<name> 5.3.0 (upstream: Google Fonts), so the page needs no network font request:
+       "Cinzel" by Natanael Gama                    titles (uppercase, Roman inscription style)
+       "Cinzel Decorative" by Natanael Gama         the map's title and "Enter Camp Half-Blood"
+       "Cormorant Garamond" by Christian Thalmann   body text: labels, hints, tips
+       "IM Fell English" by Igino Marini            hand-lettered map labels
+       "Almendra" Bold by Ana Sanfelippo            the painted signs in the world (src/places/signs.js) */
+  @font-face { font-family: 'HC Almendra'; src: url('/camp-half-blood/assets/fonts/almendra-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+  @font-face { font-family: 'HC Cinzel'; src: url('/camp-half-blood/assets/fonts/cinzel-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'HC Cinzel'; src: url('/camp-half-blood/assets/fonts/cinzel-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'HC Cinzel'; src: url('/camp-half-blood/assets/fonts/cinzel-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+  @font-face { font-family: 'HC Cinzel Decorative'; src: url('/camp-half-blood/assets/fonts/cinzel-decorative-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'HC Cinzel Decorative'; src: url('/camp-half-blood/assets/fonts/cinzel-decorative-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+  @font-face { font-family: 'HC Cormorant'; src: url('/camp-half-blood/assets/fonts/cormorant-garamond-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'HC Cormorant'; src: url('/camp-half-blood/assets/fonts/cormorant-garamond-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+  @font-face { font-family: 'HC Cormorant'; src: url('/camp-half-blood/assets/fonts/cormorant-garamond-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'HC Cormorant'; src: url('/camp-half-blood/assets/fonts/cormorant-garamond-latin-400-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+  @font-face { font-family: 'HC Cormorant'; src: url('/camp-half-blood/assets/fonts/cormorant-garamond-latin-500-italic.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
+  @font-face { font-family: 'HC Fell'; src: url('/camp-half-blood/assets/fonts/im-fell-english-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'HC Fell'; src: url('/camp-half-blood/assets/fonts/im-fell-english-latin-400-italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+  #hc-loader { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 42%, #1b1e23 0%, #0b0d10 62%, #050607 100%); }
+  #hc-loader.hc-gone { visibility: hidden; pointer-events: none; }   /* (only ever hidden while a solid black layer covers the page) */
+  /* start screen: the rolled map, "Open the map", and how to begin. One big button, nothing else on the page. */
+  .hcl-start { position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 24px; border: none; background: transparent; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #f1e0b6; opacity: 1; transition: opacity .5s ease;
+    -webkit-tap-highlight-color: transparent; -webkit-appearance: none; appearance: none; }
+  .hcl-start.hcl-gone { opacity: 0; pointer-events: none; }
+  .hcl-scroll { display: block; flex: none; width: min(380px, 78vw); height: auto; margin: 0 0 14px; padding: 0; overflow: visible; }
+  .hcl-roll-seal { transform-box: fill-box; transform-origin: center; animation: hcl-roll-pulse 2.8s ease-in-out infinite; }
+  @keyframes hcl-roll-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  .hcl-start-title { display: block; margin: 0; padding: 0; white-space: nowrap; font: 600 clamp(22px, 4.6vw, 30px)/1.15 'HC Cinzel', 'Trajan Pro', Georgia, serif; letter-spacing: .14em; text-indent: .14em;
+    color: #f1e0b6; text-shadow: 0 2px 10px rgba(0, 0, 0, .8); transition: color .3s ease; }
+  .hcl-start-sub { display: block; margin: 12px 0 0; padding: 0; white-space: nowrap; font: italic 500 18px/1.2 'HC Cormorant', 'Cormorant Garamond', Georgia, serif; letter-spacing: .02em; color: rgba(241, 224, 182, .72); }
+  .hcl-start:hover .hcl-start-title, .hcl-start:focus-visible .hcl-start-title { color: #fff3d0; }
+  .hcl-start:focus-visible { outline: none; }
+  /* leaving: a solid black layer over the whole loading screen (0.6 s) */
+  .hcl-black { position: absolute; inset: 0; margin: 0; padding: 0; background: #000; opacity: 0; pointer-events: none; z-index: 3; transition: opacity .6s ease; }
+  .hcl-black.hcl-on { opacity: 1; }
+  .hcl-col { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; padding: 0; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+  .hcl-col.hcl-open { opacity: 1; pointer-events: auto; }
+  /* the sheet (always 3 : 2, sized in loader.js). It starts rolled up (clipped to its middle line), unrolls sideways
+     when the visitor opens the map, and rolls up the same way when they enter the camp. */
+  .hcl-stage { position: relative; flex: none; margin: 0; padding: 0; opacity: 0; clip-path: inset(-6% 50% -6% 50%);
+    transition: opacity .3s ease, clip-path .65s cubic-bezier(.3, .7, .3, 1); }
+  .hcl-stage.hcl-ready { opacity: 1; clip-path: inset(-6% -6% -6% -6%); }
+  .hcl-stage.hcl-roll { clip-path: inset(-6% 50% -6% 50%); opacity: 0; transition: clip-path .6s cubic-bezier(.6, 0, .8, .4), opacity .3s ease .3s; }
+  .hcl-paper { position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat; filter: drop-shadow(0 16px 28px rgba(0,0,0,.7)); }
+  .hcl-ink { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; will-change: opacity; transition: opacity .35s ease; }
+
+  /* under the map: a tip, the gold key that seeps in as loading goes on; then the way in */
+  .hcl-foot { position: relative; flex: none; box-sizing: border-box; width: min(560px, 92vw); height: 104px; margin: 0; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 12px; transition: opacity .5s ease; }
+  .hcl-foot.hcl-leaving { opacity: 0; }
+  .hcl-tip { box-sizing: border-box; width: 100%; min-height: 2.6em; margin: 0; padding: 0; display: flex; align-items: flex-end; justify-content: center;
+    text-align: center; text-wrap: balance; font: italic 500 18px/1.3 'HC Cormorant', Georgia, "Times New Roman", serif; color: #d8c8a2;
+    transition: opacity .25s ease; }
+  .hcl-tip.hcl-err { color: #e08a72; font-style: normal; }
+  .hcl-fret { display: block; flex: none; width: 100%; max-width: 480px; height: auto; margin: 0; transition: opacity .5s ease; }
+  .hcl-done .hcl-tip:not(.hcl-err), .hcl-done .hcl-fret { opacity: 0 !important; }
+  .hcl-enter { position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 0; border: none; background: transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; cursor: pointer; color: #f1e0b6;
+    opacity: 0; pointer-events: none; transition: opacity .8s ease .35s; -webkit-appearance: none; appearance: none; }
+  .hcl-done .hcl-enter { opacity: 1; pointer-events: auto; }
+  .hcl-enter-text { display: block; margin: 0; padding: 0; white-space: nowrap; font: 700 clamp(18px, 3.6vw, 27px)/1.1 'HC Cinzel Decorative', 'HC Cinzel', Georgia, serif;
+    letter-spacing: .05em; text-indent: .05em; text-shadow: 0 0 16px rgba(240, 200, 110, .4), 0 2px 6px rgba(0, 0, 0, .8); }
+  .hcl-enter:hover .hcl-enter-text, .hcl-enter:focus-visible .hcl-enter-text { color: #fff3d0; }
+  .hcl-enter:focus-visible { outline: 1px solid rgba(241, 224, 182, .6); outline-offset: 4px; }
+  .hcl-seal { display: block; flex: none; width: 58px; height: 58px; animation: hcl-pulse 2.8s ease-in-out infinite; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .65)); }
+  @keyframes hcl-pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .65)); } 50% { transform: scale(1.075); filter: drop-shadow(0 0 12px rgba(210, 70, 50, .75)); } }
+
+  /* Top-right controls: fixed-size round buttons, content centred with flex (equal padding on all sides) */
+  .hc-topbar { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right));
+    display: flex; gap: 10px; z-index: 3; opacity: 0; transition: opacity 1.2s ease; }
+  .hc-topbar.hc-show { opacity: 1; }
+  .hc-btn { box-sizing: border-box; width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.28); background: rgba(12,14,18,.38); color: #f3ead8;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font: 600 16px/1 'HC Cinzel', Georgia, "Times New Roman", serif;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); touch-action: none; }
+  .hc-btn:active { background: rgba(12,14,18,.6); }
+  .hc-btn svg { width: 20px; height: 20px; display: block; flex: none; }
+  .hc-btn-label { display: block; line-height: 1; }
+
+  /* Opening hint: one instruction per line, keys as chips (lines and chips are built in main.js from src/play/copy.js) */
+  #hc-hint { position: fixed; left: 0; right: 0; bottom: calc(15vh + env(safe-area-inset-bottom)); box-sizing: border-box; padding: 0 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;
+    color: rgba(255,250,238,.94); font: 600 18px/1.3 'HC Cormorant', Georgia, "Times New Roman", serif;
+    letter-spacing: .01em; text-shadow: 0 1px 6px rgba(0,0,0,.75);
+    opacity: 0; transition: opacity 1.6s ease; pointer-events: none; z-index: 2; }
+  #hc-hint.hc-show { opacity: 1; }
+  .hc-hint-line { margin: 0; padding: 0; white-space: nowrap; }
+
+  /* Virtual joystick (touch devices only) */
+  #hc-stick { position: fixed; left: calc(26px + env(safe-area-inset-left)); bottom: calc(26px + env(safe-area-inset-bottom));
+    width: 112px; height: 112px; border-radius: 50%; box-sizing: border-box;
+    border: 1px solid rgba(255,255,255,.25); background: rgba(12,14,18,.22); display: none; z-index: 3; touch-action: none; }
+  #hc-stick.hc-show { display: block; transition: opacity .3s ease; }
+  #hc-stick.hc-idle { opacity: 0; pointer-events: none; }
+  .hc-stick-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+    background: rgba(255,255,255,.34); will-change: transform; }
+</style>
+  <script type="module" crossorigin src="/camp-half-blood/assets/index-CfGYZno4.js"></script>
+</head>
+<body>
+<canvas id="hc-canvas"></canvas>
+<div id="hc-fade"></div>
+<div id="hc-hint"></div>
+<div class="hc-topbar" id="hc-topbar">
+  <button class="hc-btn" id="hc-daynight" aria-label="Skip to night"></button>
+  <button class="hc-btn" id="hc-quality" aria-label="Toggle quality"><span class="hc-btn-label" id="hc-quality-label">H</span></button>
+  <button class="hc-btn" id="hc-sound" aria-label="Turn sound on"></button>
+</div>
+<div id="hc-stick"><div class="hc-stick-knob" id="hc-stick-knob"></div></div>
+<div id="hc-loader"></div>
+<!-- the loading screen is its own tiny module: it is on screen first and then pulls in the main bundle itself -->
+</body>
+</html>

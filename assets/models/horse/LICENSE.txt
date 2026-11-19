@@ -1,0 +1,41 @@
+horse.glb — rigged, animated horse (mesh + skeleton + 14 animation clips)
+========================================================================
+
+Source project : Mesh2Motion — https://mesh2motion.org/
+Author         : Mesh2Motion (Scott Petrovic and contributors)
+Source repo    : https://github.com/Mesh2Motion/mesh2motion-app
+                 (commit 7963d4c6f760152c41d60a8bdf52fc75d0d34925, "update static assets from latest assets repo", 2026-11-07)
+Source files   : https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/main/static/assets/horse/model.glb
+                 https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/main/static/assets/horse/animations/<clip>.glb
+                 (idle, eating, walk, trot, run, rear, kick, headbut, turn-left, turn-right, sleep, lay-to-idle, death, rest-pose)
+Blender sources: https://github.com/Mesh2Motion/mesh2motion-assets  (3d-models/model-horse.blend, rigs/rig-horse.blend, rigs/horse/*)
+
+Licence        : CC0 1.0 Universal (public domain dedication)
+                 https://creativecommons.org/publicdomain/zero/1.0/
+
+Licence statements quoted from the source:
+  LICENSE-CC0.MD (mesh2motion-app):
+    "All 3d models, blend files, rigs, animations
+     CC0 1.0 Universal
+     By marking the work with a CC0 public domain dedication, the creator is giving up their copyright and
+     allowing reusers to distribute, remix, adapt, and build upon the material in any medium or format,
+     even for commercial purposes."
+  README.md (mesh2motion-app), section "Licenses":
+    "The art assets (3d models, rigs, animations) are all licensed under CC0."
+  mesh2motion-assets/LICENSE: full text of "CC0 1.0 Universal".
+
+Attribution    : not required under CC0. Courtesy credit line:
+                 "Horse model, rig and animations by Mesh2Motion (mesh2motion.org), CC0 1.0."
+
+Modifications made to produce this file (downloaded 2026-11-13)
+---------------------------------------------------------------
+Upstream ships the mesh and each clip as separate GLBs, the clips compressed with EXT_meshopt_compression.
+This file is a lossless re-pack of those files into one plain GLB:
+  * model.glb is used unchanged (mesh, skin, material, embedded palette texture);
+  * each clip's keyframes were meshopt-decoded and attached to the model's own nodes (matched by node name),
+    so no meshopt decoder is needed at runtime;
+  * "Walk" and "Trot" got one closing keyframe (a copy of their first keyframe, one frame = 1/30 s after the
+    last one) so that they loop without a pop. That closing frame is identical to the last frame of the same
+    clips in upstream's mesh2motion-assets/rigs/horse/horse-animations.glb. Durations therefore read
+    0.9667 s (Walk) and 0.7000 s (Trot) instead of upstream's 0.9333 s / 0.6667 s.
+Nothing else was changed. sha256 of upstream model.glb: 7d783e721e611f3624bba5644907a7193c2c12266e328985ae1e4f5bab33af18
